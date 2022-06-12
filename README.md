@@ -95,3 +95,4 @@ check_interaction_amount_value = ValueCheckOperator(
     conn_id=CONN_ID
 )
 ```
+##Validação do modelo
