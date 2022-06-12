@@ -46,3 +46,52 @@ docker-compose up
 ```
 
 ## Validação de dados
+
+A etapa de validação de dados é necessária antes do treinamento do modelo para decidir se você pode treinar o modelo ou interromper a execução do pipeline. 
+
+- Desvios do esquema de dados : esses desvios são considerados anomalias nos dados de entrada, o que significa que as etapas do pipeline downstream, incluindo processamento de dados e treinamento de modelo, recebem dados que não estão em conformidade com o esquema esperado. As distorções de esquema incluem receber recursos inesperados, não receber todos os recursos esperados ou receber recursos com valores inesperados.
+- Desvio de valores de dados : esses desvios são alterações significativas nas propriedades estatísticas dos dados, o que significa que os padrões de dados são significativamente alterados e você precisa verificar a natureza dessas alterações.
+
+**1. CheckOperator**
+
+O CheckOperator espera uma consulta SQL que retornará uma única linha. Cada valor nessa primeira linha é avaliado usando python bool casting. Se algum dos valores retornar False, a verificação falhará e apresentará erros. Então, basta adicionar uma tarefa ao pipeline, podemos verificar se existem dados, por exemplo, para uma data específica.
+```bash
+check_interaction_data = CheckOperator(
+    task_id='check_interaction_data',
+    sql='SELECT COUNT(1) FROM interaction WHERE interaction_date = CURRENT_DATE',
+    conn_id=CONN_ID
+)
+```
+
+**2. IntervalCheckOperator**
+
+Verifica se os valores das métricas fornecidas como expressões SQL estão dentro de uma certa tolerância daqueles de “ days_back ” anteriores, permitindo que se verifique diferentes métricas ao mesmo tempo com diferentes proporções para alguma tabela específica.
+- max_over_min: max(cur, ref) / min(cur, ref)
+- parent_diff : calcula abs(cur-ref)/ref
+
+```bash
+check_interaction_intervals = IntervalCheckOperator(
+    task_id='check_interaction_intervals',
+    table='interaction',
+    metrics_thresholds={'COUNT(*)': 1.5,
+                        'MAX(amount)': 1.3,
+                        'MIN(amount)': 1.4,
+                        'SUM(amount)': 1.3},
+    date_filter_column='interaction_date',
+    days_back=5,
+    conn_id=CONN_ID
+)
+```
+
+**3. ValueCheckOperator**
+
+Executa uma verificação de valor puro usando código SQL. Você pode usar uma consulta SQL de qualquer complexidade para obter qualquer valor. A verificação será aprovada se o valor calculado for igual ao valor passado com alguma tolerância.
+```bash
+check_interaction_amount_value = ValueCheckOperator(
+    task_id='check_interaction_amount_value',
+    sql="SELECT COUNT(1) FROM interaction WHERE interaction_date=CURRENT_DATE - 1",
+    pass_value=200,
+    tolerance=0.2,
+    conn_id=CONN_ID
+)
+```
