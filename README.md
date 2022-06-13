@@ -7,6 +7,9 @@ $ mkdir apache-airflow
 $ cd apache-airflow
 $ python3 -m venv .venv
 $ source .venv/scripts/activate
+$ ./codeartifact_login.sh
+$ python3 -m pip install --upgrade pip
+$ pip install -r requirements.txt
 ```
 Para implantar o Airflow no Docker Compose, deve-se buscar [docker-compose.yaml](https://airflow.apache.org/docs/apache-airflow/stable/docker-compose.yaml)
 ```bash
@@ -95,4 +98,6 @@ check_interaction_amount_value = ValueCheckOperator(
     conn_id=CONN_ID
 )
 ```
-##Validação do modelo
+## Validação do modelo
+
+
